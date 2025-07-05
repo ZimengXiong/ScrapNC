@@ -18,29 +18,44 @@ Runs standard [Klipper](https://github.com/Klipper3d/klipper) with [custom confi
 ![](Media/polycarbonate_image1.jpeg)
 ![](Media/polycarbonate_image2.jpeg)
 
-<video controls src="Media/polycarbonate_video1.mov" title="Polycarbonate Cutting Demo"></video>
+https://github.com/user-attachments/assets/6acb7927-33cb-447a-ad85-6f1f9b60a763
 
 ![](Media/polycarbonate_image3.jpeg)
 
-<video controls src="Media/polycarbonate_video2.mov" title="Polycarbonate Cutting Demo 2"></video>
+
+https://github.com/user-attachments/assets/8f0fa02e-e79f-4632-babf-1fa1cd60a0c3
+
+
 
 ## Plywood
 
 ![](Media/plywood_image1.jpeg)
 
-<video controls src="Media/plywood_video1.mov" title="Plywood Cutting Demo"></video>
+
+
+https://github.com/user-attachments/assets/6a91daa9-58b5-4f33-bc3b-5fa999200487
+
 
 (Fail—Did not properly fasten bit)
-<video controls src="Media/plywood_video2.mov" title="Plywood Cutting Failure"></video>
+
+
+https://github.com/user-attachments/assets/d1fd9dd1-560f-435f-840f-3c51d6c63a27
+
 
 ## Cardboard
 
 ![](Media/cardboard_image1.jpeg)
 
-<video controls src="Media/cardboard_video1.mp4" title="Cardboard Cutting Demo"></video>
+
+https://github.com/user-attachments/assets/0a070702-a36b-4b73-86e6-df643ceed8f8
+
+
 
 ![](Media/cardboard_image2.jpeg)
-<video controls src="Media/cardboard_video2.mp4" title="Cardboard Cutting Demo 2"></video>
+
+
+https://github.com/user-attachments/assets/c7c148f7-fc61-4ff0-bef7-0c005a5ad410
+
 
 # BOM
 
