@@ -1,0 +1,223 @@
+/* 
+ * JavaScript post processor for Carbide Create
+ * Custom Shapeoko configuration
+ */
+description = "ScrapNC"
+notes = "ScrapNC Postprocessor"
+vendor = "Zimeng Xiong"
+vendorUrl = "https://github.com/ZimengXiong/ScrapNC"
+
+outputMetric = true
+extension = "gcode"
+
+function createFormatter(name, numDigits, useUnits) {
+	var lastOutput = ""
+	return {
+
+		format: function (val) {
+
+			if (val == undefined) {
+				this.reset();
+				return "";
+			}
+
+			if (!outputMetric && useUnits) {
+				val = val / 25.4
+			}
+
+			var fmt = val.toFixed(numDigits);
+			var ret = ""
+			if (fmt != lastOutput) {
+				ret += name;
+				ret += fmt;
+				lastOutput = fmt;
+			}
+			return ret;
+		},
+		reset: function () {
+			lastOutput = "--"
+		}
+	}
+}
+
+function formatUnits(val) {
+	var un = "mm"
+	var digits = 2;
+	if (!outputMetric) {
+		val /= 25.4;
+		un = "in"
+		digits += 1;
+	}
+	return "" + val.toFixed(digits) + un
+}
+
+function formatDimension(val) {
+	var digits = 2;
+	if (!outputMetric) {
+		val /= 25.4;
+		digits += 1;
+	}
+	return "" + val.toFixed(digits)
+}
+
+function outputSafeZ() {
+	if (state.wasHomeZ) {
+		//Should already be in home Z
+		return
+	}
+
+	var distFromTop = 5
+	if (!outputMetric) {
+		distFromTop /= 25.4
+	}
+
+	onComment("Move to safe Z to avoid workholding")
+	writeLn("G0 Z" + distFromTop.toFixed(3))
+	state.motionMode.reset()
+	state.zval.reset()
+	state.wasHomeZ = true
+}
+
+function writeBlock() {
+	var ln = ""
+	for (var i = 0; i < arguments.length; i++) {
+		if (i > 0 && arguments[i] !== "" && ln !== "") {
+			ln += " ";  // Add space between parameters
+		}
+		ln += arguments[i];
+	}
+	writeLn(ln);
+}
+
+var state = {}
+
+function onOpen() {
+
+	var coordDigits = outputMetric ? 3 : 4
+
+	state.xval = createFormatter("X", coordDigits, true)
+	state.yval = createFormatter("Y", coordDigits, true)
+	state.zval = createFormatter("Z", coordDigits, true)
+
+	state.fval = createFormatter("F", 1, true)
+
+	state.sval = createFormatter("S", 0)
+	state.tval = createFormatter("T", 0)
+	state.motionMode = createFormatter("G", 0)
+	state.rpm = 0
+
+	state.wasHomeZ = false
+	state.lastTool = -1
+	state.spindle = false
+
+	onComment("Design File: " + sourceFilename);
+	onComment("stockMin:" + formatUnits(stockMinX) + ", " + formatUnits(stockMinY) + ", " + formatUnits(stockMinZ))
+	onComment("stockMax:" + formatUnits(stockMaxX) + ", " + formatUnits(stockMaxY) + ", " + formatUnits(stockMaxZ))
+
+	//Output Cutviewer strings
+	var length = stockMaxX - stockMinX;
+	var width = stockMaxY - stockMinY;
+	var height = stockMaxZ - stockMinZ;
+	onComment("STOCK/BLOCK," + formatDimension(length) + ", " + formatDimension(width) + ", " + formatDimension(height) + "," + formatDimension(-stockMinX) + ", " + formatDimension(-stockMinY) + ", " + formatDimension(-stockMinZ))
+
+
+	writeLn("G90")
+
+	if (outputMetric) {
+		writeLn("G21")
+	} else {
+		writeLn("G20")
+	}
+
+	outputSafeZ();
+}
+
+function onClose() {
+	if (state.spindle) {
+		writeLn("M05");
+	}
+
+	//RETRACT UP
+
+	writeLn("M02");
+	writeLn("G0 X0 Y0 Z10");
+	writeLn("M84");
+}
+
+function onTerminate() {
+	//Called to tear down after file is closed, nothing to do here.
+}
+
+function onComment(text) {
+	writeLn("(" + text + ")");
+}
+
+function onLinear(x, y, z, feed) {
+	if (state.wasHomeZ) {
+		//MOVE IN XY FIRST
+		onComment("PREPOSITION FOR PLUNGE"); //remove after testing
+		writeBlock(state.motionMode.format(1), state.xval.format(x), state.yval.format(y), state.fval.format(feed));
+		state.wasHomeZ = false
+	}
+
+	var xv = state.xval.format(x);
+	var yv = state.yval.format(y);
+	var zv = state.zval.format(z);
+
+	if (xv != "" || yv != "" || zv != "") {
+		//The position changed, output as normal
+		// Force G1 on every line by using "G1" directly instead of state.motionMode.format(1)
+		writeBlock("G1", xv, yv, zv, state.fval.format(feed));
+	}
+
+}
+
+function onRapid(x, y, z) {
+	if (state.wasHomeZ) {
+		//MOVE IN XY FIRST
+		onComment("PREPOSITION FOR RAPID PLUNGE"); //remove after testing
+		// Force G0 on every line by using "G0" directly instead of state.motionMode.format(0)
+		writeBlock("G0", state.xval.format(x), state.yval.format(y));
+		state.wasHomeZ = false
+	}
+	// Force G0 on every line by using "G0" directly instead of state.motionMode.format(0)
+	writeBlock("G0", state.xval.format(x), state.yval.format(y), state.zval.format(z));
+}
+
+function onSpindleSpeed(s) {
+
+	if (s <= 0) {
+		state.spindle = false
+		writeLn("M05")
+	} else {
+		state.spindle = true
+		state.sval.reset()
+		writeBlock("M03", state.sval.format(s))
+	}
+	state.rpm = s
+}
+
+function onSection() {
+	// var tnum = toolNumber //global value
+	// var force = forceToolChange //global value
+
+	// if (tnum != state.lastTool || force == true) {
+	// 	state.lastTool = tnum
+
+	// 	onSpindleSpeed(0)
+	// 	outputSafeZ()
+
+	// 	//Cutviewer Tool String
+	// 	onComment("TOOL/MILL," + formatDimension(toolDiameter) + ", " + formatDimension(toolCornerRadius) + ", " + formatDimension(toolFluteLength) + ", " + Number(toolAngle).toFixed(2))
+
+	// 	state.tval.reset()
+	// 	writeBlock("M6", state.tval.format(tnum));
+
+	// 	state.xval.reset()
+	// 	state.yval.reset()
+	// 	state.zval.reset()
+	// 	state.fval.reset()
+
+	// 	state.wasHomeZ = true
+	// }
+}
