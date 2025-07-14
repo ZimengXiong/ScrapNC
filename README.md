@@ -8,6 +8,7 @@ GCode Generated with [Carbide Create](https://carbide3d.com/carbidecreate/), wit
 
 Runs standard [Klipper](https://github.com/Klipper3d/klipper) with [custom config](KlipperConfig)
 
+View the models here: https://www.printables.com/model/1347866-scrapnc-low-cost-cnc-router-from-3d-printer-compon/files
 ![](Media/ScrapNC.png)
 ![](Media/cover.jpeg)
 
